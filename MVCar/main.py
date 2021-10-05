@@ -33,7 +33,24 @@ def qr_camera():
 
 
 def clean_data(data):
-    pass
+
+    c_data = []
+    f_data = []
+
+    for i in range(len(data)):
+        if data[i] in c_data:
+            for j in range(len(c_data) - 1):
+                if data[i] == c_data[j]:
+                    c_data[j + 1] += 1
+        else:
+            c_data.append(data[i])
+            c_data.append(1)
+    for i in range(0, len(c_data) - 1, 2):
+        a = [c_data[i], c_data[i + 1]]
+        f_data.append(a)
+
+    return f_data
+
 
 def write_data(data):
 

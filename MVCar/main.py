@@ -1,3 +1,5 @@
+import csv
+
 import numpy as np
 import cv2
 import pyzbar.pyzbar as pyzbar
@@ -31,21 +33,30 @@ def qr_camera():
 
 
 def clean_data(data):
-    # Remove unwanted qr codes that where picked up, final count of inventory
     pass
 
 def write_data(data):
-    # Future write data to file or database
-    pass
+
+    with open('database.csv', 'w') as database:
+        fieldnames = ['id', 'amount']
+        writer = csv.DictWriter(database, fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        for row in data:
+            writer.writerow({'id': row[0], 'amount': row[1]})
+
 
 def notify_low_amount(item, amount):
     # Future notification by email or something
     pass
 
+
 def main():
     inventory_count = qr_camera()
     result = clean_data(inventory_count)
     write_data(result)
+
 
 if __name__ == '__main__':
     main()

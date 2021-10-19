@@ -1,5 +1,4 @@
 import csv
-
 import numpy as np
 import cv2
 import pyzbar.pyzbar as pyzbar
@@ -8,7 +7,7 @@ import smtplib, ssl
 
 class QRScanner:
 
-    def __init__(self, inventory_items, database_file, camera):
+    def __init__(self, inventory_items, database_file, camera, wframe):
         self.inv_items = self.collect_inventory_items(inventory_items)
         self.db = database_file
         self.cam = camera
@@ -16,6 +15,7 @@ class QRScanner:
         self.read_items = []
         self.c_data = []
         self.file_data = []
+        self.wait_frames = wframe
 
     def collect_inventory_items(self, inventory_items):
 
@@ -34,6 +34,8 @@ class QRScanner:
 
     def scan_qr_codes(self):
 
+        wait_frames = self.wait_frames
+
         while True:
             _, frame = self.cam.read()
 
@@ -44,15 +46,18 @@ class QRScanner:
                     for item in read_item:
                         print("Read item: ", item.data)
                         self.read_items.append(item.data)
+            else:
+                wait_frames -= 1
+
+            if wait_frames <= 0:
+                self.read_codes = True
+                wait_frames = self.wait_frames
 
             cv2.imshow("Cam", frame)
             key = cv2.waitKey(1)
+            
             if key == 27:
                 break
-            if key == ord('k'):
-                self.read_codes = False
-            if key == ord('s'):
-                self.read_codes = True
 
     def clean_data(self):
 
@@ -109,7 +114,7 @@ class QRScanner:
 
 def main():
 
-    scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(0))
+    scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(0), 30)
     scanner.scan_qr_codes()
     scanner.clean_data()
     scanner.write_data()

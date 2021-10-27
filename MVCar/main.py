@@ -36,28 +36,33 @@ class QRScanner:
 
         wait_frames = self.wait_frames
 
-        while True:
-            _, frame = self.cam.read()
+        if self.cap.isOpened():
+            window_name = "FindingGeirCam"
+            window_handle = cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
-            if self.read_codes:
-                read_item = pyzbar.decode(frame)
-                if read_item:
-                    self.read_codes = False
-                    for item in read_item:
+            while cv2.getWindowProperty(window_name, 0) >= 0:
+
+                _, frame = self.cam.read()
+                cv2.imshow(window_name, frame)
+                
+                if self.read_codes:
+                    read_item = pyzbar.decode(frame)
+                    if read_item:
+                        self.read_codes = False
                         print("Read item: ", item.data)
                         self.read_items.append(item.data)
-            else:
-                wait_frames -= 1
+                else:
+                    wait_frames -= 1
 
-            if wait_frames <= 0:
-                self.read_codes = True
-                wait_frames = self.wait_frames
+                if wait_frames <= 0:
+                    self.read_codes = True
+                    wait_frames = self.wait_frames
 
-            cv2.imshow("Cam", frame)
-            key = cv2.waitKey(1)
-            
-            if key == 27:
-                break
+
+                key = cv2.waitKey(1)
+
+                if key == 27:
+                    break
 
     def clean_data(self):
 
@@ -111,9 +116,36 @@ class QRScanner:
             server.login(sender_email, password)
             server.sendmail(sender_email, receiver_email, message)
 
+def gstreamer_pipeline(
+    capture_width=1280,
+    capture_height=720,
+    display_width=1280,
+    display_height=720,
+    framerate=60,
+    flip_method=0,
+):
+    return (
+        "nvarguscamerasrc ! "
+        "video/x-raw(memory:NVMM), "
+        "width=(int)%d, height=(int)%d, "
+        "format=(string)NV12, framerate=(fraction)%d/1 ! "
+        "nvvidconv flip-method=%d ! "
+        "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
+        "videoconvert ! "
+        "video/x-raw, format=(string)BGR ! appsink"
+        % (
+            capture_width,
+            capture_height,
+            framerate,
+            flip_method,
+            display_width,
+            display_height,
+        )
+    )
 
 def main():
 
+    #scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER), 30)
     scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(0), 30)
     scanner.scan_qr_codes()
     scanner.clean_data()

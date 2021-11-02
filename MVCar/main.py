@@ -87,6 +87,11 @@ class QRScanner:
             for i in range(0, len(self.c_data) - 1, 2):
                 self.file_data.append([self.c_data[i], self.c_data[i + 1]])
 
+            for item in inv_items:
+                print(item[0])
+                if item[0] not in self.file_data:
+                    self.file_data.append([item[0], 0])
+
             self.inventory_data.append(self.file_data)
 
 

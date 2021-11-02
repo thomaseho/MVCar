@@ -7,14 +7,17 @@ import smtplib, ssl
 
 class QRScanner:
 
-    def __init__(self, inventory_items, database_file, camera, wframe):
-        self.inv_items = self.collect_inventory_items(inventory_items)
-        self.db = database_file
+    def __init__(self, customers_inventory_list, database_files, camera, wframe):
+        self.inv_items = []
+        for inventory_list in customers_inventory_list:
+            self.inv_items.append(self.collect_inventory_items(inventory_list))
+        self.db = database_files
         self.cam = camera
         self.read_codes = True
         self.read_items = []
         self.c_data = []
         self.file_data = []
+        self.inventory_data = []
         self.wait_frames = wframe
 
     def collect_inventory_items(self, inventory_items):
@@ -36,7 +39,7 @@ class QRScanner:
 
         wait_frames = self.wait_frames
 
-        if self.cap.isOpened():
+        if self.cam.isOpened():
             window_name = "FindingGeirCam"
             window_handle = cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
@@ -44,13 +47,14 @@ class QRScanner:
 
                 _, frame = self.cam.read()
                 cv2.imshow(window_name, frame)
-                
+
                 if self.read_codes:
                     read_item = pyzbar.decode(frame)
                     if read_item:
                         self.read_codes = False
-                        print("Read item: ", item.data)
-                        self.read_items.append(item.data)
+                        for item in read_item:
+                            print("Read item: ", item.data)
+                            self.read_items.append(item.data)
                 else:
                     wait_frames -= 1
 
@@ -59,40 +63,51 @@ class QRScanner:
                     wait_frames = self.wait_frames
 
 
-                key = cv2.waitKey(1)
+                key = cv2.waitKey(100)
 
                 if key == 27:
                     break
 
     def clean_data(self):
+        for inv_items in self.inv_items:
+            self.c_data = []
+            self.file_data = []
+            for i in range(len(self.read_items)):
+                if self.read_items[i] in self.c_data:
+                    for j in range(len(self.c_data) - 1):
+                        if self.read_items[i] == self.c_data[j]:
+                            self.c_data[j + 1] += 1
 
-        for i in range(len(self.read_items)):
-            if self.read_items[i] in self.c_data:
-                for j in range(len(self.c_data) - 1):
-                    if self.read_items[i] == self.c_data[j]:
-                        self.c_data[j + 1] += 1
+                else:
+                    for k in range(len(inv_items)):
+                        if f"{self.read_items[i]}" in inv_items[k]:
+                            self.c_data.append(self.read_items[i])
+                            self.c_data.append(1)
 
-            else:
-                for k in range(len(self.inv_items)):
-                    if f"{self.read_items[i]}" in self.inv_items[k]:
-                        self.c_data.append(self.read_items[i])
-                        self.c_data.append(1)
+            for i in range(0, len(self.c_data) - 1, 2):
+                self.file_data.append([self.c_data[i], self.c_data[i + 1]])
 
-        for i in range(0, len(self.c_data) - 1, 2):
-            self.file_data.append([self.c_data[i], self.c_data[i + 1]])
+            for item in inv_items:
+                print(item[0])
+                if item[0] not in self.file_data:
+                    self.file_data.append([item[0], 0])
+
+            self.inventory_data.append(self.file_data)
 
 
     def write_data(self):
 
-        with open(f'{self.db}', 'w') as db:
-            fieldnames = ['id', 'amount']
-            writer = csv.DictWriter(db, fieldnames=fieldnames)
-            writer.writeheader()
+        i = 0
+        for inventory in self.inventory_data:
+            with open(f'{self.db[i]}', 'w', newline='') as db:
+                fieldnames = ['id', 'amount']
+                writer = csv.DictWriter(db, fieldnames=fieldnames)
+                writer.writeheader()
 
-            for row in self.file_data:
-                writer.writerow({'id': row[0], 'amount': row[1]})
-
-        db.close()
+                for row in inventory:
+                    writer.writerow({'id': row[0], 'amount': row[1]})
+            i += 1
+            db.close()
 
     def notify_low_amount(self):
         # Starting on email, if using Gmail emails and servers,
@@ -144,9 +159,12 @@ def gstreamer_pipeline(
     )
 
 def main():
+    customers = ['customer1.csv', 'customer2.csv', 'customer3.csv']
+    databases = ['database1.csv', 'database2.csv', 'database3.csv']
+    cap = cv2.VideoCapture(0)
 
     #scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER), 30)
-    scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(0), 30)
+    scanner = QRScanner(customers, databases, cap, 30)
     scanner.scan_qr_codes()
     scanner.clean_data()
     scanner.write_data()

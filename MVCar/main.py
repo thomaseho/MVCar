@@ -88,7 +88,6 @@ class QRScanner:
                 self.file_data.append([self.c_data[i], self.c_data[i + 1]])
 
             for item in inv_items:
-                print(item[0])
                 if item[0] not in self.file_data:
                     self.file_data.append([item[0], 0])
 
@@ -109,19 +108,29 @@ class QRScanner:
             i += 1
             db.close()
 
-    def notify_low_amount(self):
+    def notify_low_amount(self, low_stock_items):
         # Starting on email, if using Gmail emails and servers,
         port = 587
-        password = input("Email password, then press enter:  ")
+        password = 'Passord1.'
+        #password = input("Email password, then press enter:  ")
         smtp_server = "smtp.gmail.com"
         sender_email = "JetsonBotGroup6@gmail.com"  # Make a email for Jetson Bot, password = Passord1.
         receiver_email = "Group6Stock@gmail.com"  # Make a test email for our "accountant"
-        message = """\
-            Subject: Stock Order
-            // Add .csv file
-            // Add "Warning low amount"
-            // Add date
+        message = f"""\n
+            Subject: Stock Order\n
+            -----------------------------------------------\n
+            There are items in your inventory low in stock\n.
             """
+        for item in low_stock_items:
+            message += """\n------------------------------------------------------\n"""
+            message += f"""{item[0]}: there are {item[1]} currently in stock.\n"""
+            message += """------------------------------------------------------\n"""
+
+        print(message)
+             # Add.csv file
+             # Add Warning low amount
+             # Add date
+
 
         context = ssl.create_default_context()
         with smtplib.SMTP(smtp_server, port) as server:
@@ -130,6 +139,22 @@ class QRScanner:
             server.ehlo()  # Can be omitted
             server.login(sender_email, password)
             server.sendmail(sender_email, receiver_email, message)
+
+    def check_low_stock(self):
+
+        for db in self.db:
+            low_stock = []
+            with open(f'{db}', 'r') as db_items:
+                reader = csv.reader(db_items)
+
+                for row in reader:
+                    if row[1] == '0':
+                        print(row[0])
+                        low_stock.append(row)
+                db_items.close()
+
+            if len(low_stock) > 0:
+                self.notify_low_amount(low_stock)
 
 def gstreamer_pipeline(
     capture_width=1280,
@@ -168,6 +193,8 @@ def main():
     scanner.scan_qr_codes()
     scanner.clean_data()
     scanner.write_data()
+    scanner.check_low_stock()
+
 
 
 if __name__ == '__main__':

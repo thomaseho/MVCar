@@ -46,14 +46,17 @@ class QRScanner:
             while cv2.getWindowProperty(window_name, 0) >= 0:
 
                 _, frame = self.cam.read()
-                cv2.imshow(window_name, frame)
+                newframe = cv2.resize(frame,(1280,720),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
+                cv2.imshow(window_name, newframe)
 
                 if self.read_codes:
                     read_item = pyzbar.decode(frame)
                     if read_item:
                         self.read_codes = False
                         for item in read_item:
+                            print("------------------")
                             print("Read item: ", item.data)
+                            print("------------------")
                             self.read_items.append(item.data)
                 else:
                     wait_frames -= 1
@@ -63,7 +66,7 @@ class QRScanner:
                     wait_frames = self.wait_frames
 
 
-                key = cv2.waitKey(100)
+                key = cv2.waitKey(1)
 
                 if key == 27:
                     break
@@ -186,10 +189,12 @@ def gstreamer_pipeline(
 def main():
     customers = ['customer1.csv', 'customer2.csv', 'customer3.csv']
     databases = ['database1.csv', 'database2.csv', 'database3.csv']
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
-    #scanner = QRScanner('data.csv', 'database.csv', cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER), 30)
-    scanner = QRScanner(customers, databases, cap, 30)
+    #scanner = QRScanner(customers, databases, cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER), 30)
+    scanner = QRScanner(customers, databases, cap, 90)
     scanner.scan_qr_codes()
     scanner.clean_data()
     scanner.write_data()

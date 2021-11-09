@@ -90,9 +90,14 @@ class QRScanner:
             for i in range(0, len(self.c_data) - 1, 2):
                 self.file_data.append([self.c_data[i], self.c_data[i + 1]])
 
+            counted = []
+
+            for item in self.file_data:
+                counted.append(item)
+
             for item in inv_items:
-                if item[0] not in self.file_data:
-                    self.file_data.append([item[0], 0])
+                    if item[0] not in str(counted):
+                        self.file_data.append([item[0], 0])
 
             self.inventory_data.append(self.file_data)
 
@@ -189,7 +194,7 @@ def gstreamer_pipeline(
 def main():
     customers = ['customer1.csv', 'customer2.csv', 'customer3.csv']
     databases = ['database1.csv', 'database2.csv', 'database3.csv']
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
